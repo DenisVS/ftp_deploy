@@ -1,0 +1,12 @@
+php_value memory_limit 512M
+php_value post_max_size 512M
+php_value upload_max_filesize 512M
+php_value max_execution_time 600
+
+php_value session.gc_maxlifetime 1200
+
+
+php_value wait_timeout 288000
+php_value max_input_time 600
+
+php_value mysqli.reconnect 1

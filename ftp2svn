@@ -1,0 +1,89 @@
+#!/bin/sh
+# $Id:
+# LFTP version
+#DEPENDENCY: sudo
+#
+MESSAGE=$*
+MYSQL_USER="agent-kmv7"
+MYSQL_DB="agent-kmv7"
+MYSQL_PASS="sdolX57SwYa"
+FTP_BASEDIR="/"
+FTP_HOST="5.45.115.20"
+FTP_PASS="6PQbvqMn5"
+FTP_USER="denisvs"
+PROJECT_DIR="/usr/local/www/apache24/data/agent-kmv.ru.local"
+HTTP_ROOT="http://new.agent-kmv.ru"
+DIR_UTILS="ghhyugfy86rfutf"
+EXCLUDE_FILE="excludes.txt"
+ARCHIVER="bzip2"
+DUMP_NAME="dump"
+MAX_RETRIES=20
+
+
+
+####################################################
+echo "Сейчас будем скачивать сайт с хостинга прямо в SVN!"
+
+if [ "${ARCHIVER}" = "gzip" ]; then
+    ARCH_EXT="gz"
+    TAR_OPT="z"
+    ARCH_APP="/usr/bin/gzip"
+fi
+if [ "${ARCHIVER}" = "bzip2" ]; then
+    ARCH_EXT="bz2"
+    TAR_OPT="j"
+    ARCH_APP="/usr/bin/bzip2"
+fi
+sleep 5
+HTTP_MYSQLDUMP=${HTTP_ROOT}/${DIR_UTILS}/mysqldump.php
+RESULT=`/usr/local/bin/curl ${HTTP_MYSQLDUMP} | sed '/^$/d' | tail -n 1`
+if [ "${RESULT}" != "OK" ]; then
+    echo "Дамп неудачный! Программа завершена."
+    exit 1 
+fi
+echo "Дамп слили, поехали дальше…"
+
+EXCLUDES_LIST=`/bin/cat ${PROJECT_DIR}/${EXCLUDE_FILE} | sed '/^$/d'`
+
+SAVEIFS=$IFS
+IFS='
+'
+for CURRENT_EXCLUDE in ${EXCLUDES_LIST}; do
+    EXCLUDE_GLOB_OPTIONS="${EXCLUDE_GLOB_OPTIONS} --exclude-glob ${CURRENT_EXCLUDE}"
+done
+IFS=$SAVEIFS
+echo ${EXCLUDE_GLOB_OPTIONS}
+#lftp -e "mirror -vvv --ignore-time --use-cache --delete  --exclude-glob ghhyugfy86rfutf/ --exclude-glob njjj ${FTP_BASEDIR} ${PROJECT_DIR}; bye;" -u "${FTP_USER}","${FTP_PASS}" ftp://${FTP_HOST}
+lftp -e "
+set cmd:fail-exit true;
+set ftp:list-options -a;
+set net:max-retries ${MAX_RETRIES};
+set net:reconnect-interval-base 5;
+open ftp://${FTP_USER}:${FTP_PASS}@${FTP_HOST};
+lcd ${PROJECT_DIR};
+cd ${FTP_BASEDIR};
+mirror --delete \
+       --ignore-time \
+       --use-cache \
+       --parallel=10 \
+       --continue \
+       --verbose=3 \
+${EXCLUDE_GLOB_OPTIONS};
+bye;"
+if [ "$?" != "0" ]; then
+    echo "Копирование неудачное! Программа завершена."
+    exit 1 
+fi
+echo "Скопировали, поехали дальше…"
+
+svn delete `svn status | awk '$1=="!" {print  $2}'`
+svn add `svn status | awk '$1=="?" {print $2}'`
+svn commit -m "${MESSAGE}"
+mysqladmin -u${MYSQL_USER}  -p${MYSQL_PASS} drop -f ${MYSQL_DB}
+mysqladmin -u${MYSQL_USER}  -p${MYSQL_PASS} create ${MYSQL_DB}
+${ARCH_APP} -dc "./${DUMP_NAME}.sql.${ARCH_EXT}" | mysql -u${MYSQL_USER} -p${MYSQL_PASS} ${MYSQL_DB}
+echo "Дамп залили! Окрывайте сайт на локалке."
+sudo /sbin/umount ${FTP_DIR}
+echo "Размонтировали, by…"
+exit 1
+

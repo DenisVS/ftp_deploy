@@ -1,0 +1,36 @@
+#!/bin/sh
+# SVN COMMIT
+
+MYSQL_HOST="localhost"
+MYSQL_USER="agent-kmv7"
+MYSQL_DB="agent-kmv7"
+MYSQL_PASS="sdolX57SwYa"
+ARCHIVER="bzip2"
+DUMP_NAME="dump"
+MESSAGE=$*
+TRUNCATE_CACHE="1"
+#######################################################
+if [ "${ARCHIVER}" = "gzip" ]; then
+    ARCH_EXT="gz"
+    TAR_OPT="z"
+    ARCH_APP="/usr/bin/gzip"
+fi
+if [ "${ARCHIVER}" = "bzip2" ]; then
+    ARCH_EXT="bz2"
+    TAR_OPT="j"
+    ARCH_APP="/usr/bin/bzip2"
+fi
+if [ "${TRUNCATE_CACHE}" = "1" ]; then
+    TRUNCATE_TABLES=`/usr/local/bin/mysql -u${MYSQL_USER} -h ${MYSQL_HOST} -p${MYSQL_PASS} ${MYSQL_DB} -Bse 'show tables;' | grep cache`
+    for TABLENAME in ${TRUNCATE_TABLES}; do
+            /usr/local/bin/mysql -u${MYSQL_USER} -h ${MYSQL_HOST} -p${MYSQL_PASS} ${MYSQL_DB} -Bse "truncate table ${TABLENAME};"
+    done
+fi
+touch ./${DUMP_NAME}.sql.${ARCH_EXT}
+rm ./${DUMP_NAME}.sql.${ARCH_EXT}
+/usr/local/bin/mysqldump -u${MYSQL_USER} -h ${MYSQL_HOST} -p${MYSQL_PASS} ${MYSQL_DB} | ${ARCH_APP} -c > "./${DUMP_NAME}.sql.${ARCH_EXT}" 
+
+svn delete `svn status | awk '$1=="!" {print  $2}'`
+svn add `svn status | awk '$1=="?" {print $2}'`
+sleep 10
+svn commit -m "${MESSAGE}"

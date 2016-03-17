@@ -1,0 +1,84 @@
+#!/bin/sh
+# $Id:
+# LFTP version
+#DEPENDENCY: sudo
+#
+REVISION=$*
+MYSQL_USER="agent-kmv7"
+MYSQL_DB="agent-kmv7"
+MYSQL_PASS="sdolX57SwYa"
+FTP_BASEDIR="/"
+FTP_HOST="5.45.115.20"
+FTP_PASS="6PQbvqMn5"
+FTP_USER="denisvs"
+PROJECT_DIR="/usr/local/www/apache24/data/agent-kmv.ru.local"
+HTTP_ROOT="http://new.agent-kmv.ru"
+DIR_UTILS="ghhyugfy86rfutf"
+EXCLUDE_FILE="excludes.txt"
+MAX_RETRIES=20
+##############################################
+echo "Сейчас будем заливать сайт на хостинг!"
+if  [ -n "${REVISION}" ]; then
+    REV_PARAM=" -r ${REVISION}"
+    echo ${REV_PARAM}
+fi
+sleep 5
+svn up ${REV_PARAM}
+if [ "$?" != "0" ]; then
+    echo "Репозиторий выделывается. Программа завершена."
+    /usr/local/bin/sudo echo -e "A8P8A8P8A8" > /dev/speaker
+    exit 1 
+fi
+echo "Ревизия готова для загрузки на хост…"
+
+###############################
+
+EXCLUDES_LIST=`/bin/cat ${PROJECT_DIR}/${EXCLUDE_FILE} | sed '/^$/d'`
+
+SAVEIFS=$IFS
+IFS='
+'
+for CURRENT_EXCLUDE in ${EXCLUDES_LIST}; do
+    EXCLUDE_GLOB_OPTIONS="${EXCLUDE_GLOB_OPTIONS} --exclude-glob ${CURRENT_EXCLUDE}"
+done
+IFS=$SAVEIFS
+echo ${EXCLUDE_GLOB_OPTIONS}
+lftp -e "
+set cmd:fail-exit true;
+set ftp:list-options -a;
+set net:max-retries ${MAX_RETRIES};
+set net:reconnect-interval-base 5;
+open ftp://${FTP_USER}:${FTP_PASS}@${FTP_HOST};
+lcd ${PROJECT_DIR};
+cd ${FTP_BASEDIR};
+mirror -R --delete \
+       --ignore-time \
+       --use-cache \
+       --parallel=10 \
+       --continue \
+       --verbose=3 \
+${EXCLUDE_GLOB_OPTIONS};
+bye;"
+if [ "$?" != "0" ]; then
+    echo "Копирование неудачное! Программа завершена."
+    /usr/local/bin/sudo echo -e "A8P8A8P8A8" > /dev/speaker
+    exit 1 
+fi
+echo "Скопировали, поехали дальше…"
+echo "ВНИМАНИЕ! СЕЙЧАС…"
+sleep 5
+
+###########################################
+HTTP_IMPORTER=${HTTP_ROOT}/${DIR_UTILS}/mysqlimporter.php
+RESULT=`/usr/local/bin/curl ${HTTP_IMPORTER} | sed '/^$/d' | tail -n 1`
+if [ "${RESULT}" != "OK" ]; then
+    echo "Заливка дампа на хосте неудачная! Программа завершена."
+    /usr/local/bin/sudo echo -e "A8P8A8P8A8" > /dev/speaker
+    exit 1 
+fi
+echo "Дамп залили! Окрывайте сайт на хосте."
+echo ${HTTP_ROOT}
+
+/usr/local/bin/sudo echo -e "t255l8c.f.afc~c.f.afc~c.f.afc.f.a..f.~c.f.afc~c.f.afc~c.f.afc~c.f.." > /dev/speaker
+
+exit 1

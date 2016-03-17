@@ -1,0 +1,40 @@
+#!/bin/sh
+# SVN UPDATE
+
+MYSQL_HOST="localhost"
+MYSQL_USER="agent-kmv7"
+MYSQL_DB="agent-kmv7"
+MYSQL_PASS="sdolX57SwYa"
+ARCHIVER="bzip2"
+DUMP_NAME="dump"
+REVISION=$*
+HTTP_ROOT="http://agent-kmv.ru.local" # Для информации в конце
+############################################
+if  [ -n "${REVISION}" ]; then
+    REV_PARAM=" -r ${REVISION}"
+    echo ${REV_PARAM}
+fi
+if [ "${ARCHIVER}" = "gzip" ]; then
+    ARCH_EXT="gz"
+    TAR_OPT="z"
+    ARCH_APP="/usr/bin/gzip"
+fi
+if [ "${ARCHIVER}" = "bzip2" ]; then
+    ARCH_EXT="bz2"
+    TAR_OPT="j"
+    ARCH_APP="/usr/bin/bzip2"
+fi
+#----#touch dump.sql
+#----#rm dump.sql
+#----#svn revert
+#----#svn resolve --accept base ./dump.sql
+svn up ${REV_PARAM}
+#----#svn resolve --accept base ./dump.sql
+#mysqladmin -uforum  -pforum drop -f forum
+#mysqladmin -uforum  -pforum create forum
+#mysql -uforum  -pforum forum  < ./dump.sql
+mysqladmin -u${MYSQL_USER}  -p${MYSQL_PASS} drop -f ${MYSQL_DB}
+mysqladmin -u${MYSQL_USER}  -p${MYSQL_PASS} create ${MYSQL_DB}
+${ARCH_APP} -dc "./${DUMP_NAME}.sql.${ARCH_EXT}" | mysql -u${MYSQL_USER} -p${MYSQL_PASS} ${MYSQL_DB}
+echo "Дамп залили! Окрывайте сайт на локалке."
+echo ${HTTP_ROOT}
