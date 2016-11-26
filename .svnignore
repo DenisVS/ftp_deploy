@@ -1,0 +1,12 @@
+svnignore
+./ftp2svn
+ftp2svn
+svn2ftp
+svn_ci
+svn_up
+.svn/
+tmp/*
+forum/cache/*.*
+forum/cache/*
+forum/cache
+.svnignore

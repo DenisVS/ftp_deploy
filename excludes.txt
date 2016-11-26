@@ -1,9 +1,0 @@
-excludes.txt
-ftp2svn
-svn2ftp
-svn_ci
-svn_up
-.svn/
-ghhyugfy86rfutf/
-tmp/*
-cgi-bin/

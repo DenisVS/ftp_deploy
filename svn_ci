@@ -1,15 +1,27 @@
 #!/bin/sh
 # SVN COMMIT
 
+MESSAGE=$*
+
 MYSQL_HOST="localhost"
-MYSQL_USER="agent-kmv7"
-MYSQL_DB="agent-kmv7"
-MYSQL_PASS="sdolX57SwYa"
+MYSQL_USER="garage68"
+MYSQL_DB="garage68"
+MYSQL_PASS="garage68"
 ARCHIVER="bzip2"
 DUMP_NAME="dump"
-MESSAGE=$*
 TRUNCATE_CACHE="1"
+
+SECOND_MYSQL_HOST="localhost"
+SECOND_MYSQL_USER="garage68forum"
+SECOND_MYSQL_DB="garage68forum"
+SECOND_MYSQL_PASS="garage68forum"
+SECOND_ARCHIVER="bzip2"
+SECOND_DUMP_NAME="forum/dump"
+SECOND_TRUNCATE_CACHE="1"
+
 #######################################################
+
+### FIRST ###
 if [ "${ARCHIVER}" = "gzip" ]; then
     ARCH_EXT="gz"
     TAR_OPT="z"
@@ -29,8 +41,31 @@ fi
 touch ./${DUMP_NAME}.sql.${ARCH_EXT}
 rm ./${DUMP_NAME}.sql.${ARCH_EXT}
 /usr/local/bin/mysqldump -u${MYSQL_USER} -h ${MYSQL_HOST} -p${MYSQL_PASS} ${MYSQL_DB} | ${ARCH_APP} -c > "./${DUMP_NAME}.sql.${ARCH_EXT}" 
+##############
 
-svn delete `svn status | awk '$1=="!" {print  $2}'`
-svn add `svn status | awk '$1=="?" {print $2}'`
-sleep 10
+### SECOND ###
+if [ "${SECOND_ARCHIVER}" = "gzip" ]; then
+    ARCH_EXT="gz"
+    TAR_OPT="z"
+    ARCH_APP="/usr/bin/gzip"
+fi
+if [ "${SECOND_ARCHIVER}" = "bzip2" ]; then
+    ARCH_EXT="bz2"
+    TAR_OPT="j"
+    ARCH_APP="/usr/bin/bzip2"
+fi
+if [ "${SECOND_TRUNCATE_CACHE}" = "1" ]; then
+    TRUNCATE_TABLES=`/usr/local/bin/mysql -u${SECOND_MYSQL_USER} -h ${SECOND_MYSQL_HOST} -p${SECOND_MYSQL_PASS} ${SECOND_MYSQL_DB} -Bse 'show tables;' | grep cache`
+    for TABLENAME in ${TRUNCATE_TABLES}; do
+            /usr/local/bin/mysql -u${SECOND_MYSQL_USER} -h ${SECOND_MYSQL_HOST} -p${SECOND_MYSQL_PASS} ${SECOND_MYSQL_DB} -Bse "truncate table ${TABLENAME};"
+    done
+fi
+touch ./${SECOND_DUMP_NAME}.sql.${ARCH_EXT}
+rm ./${SECOND_DUMP_NAME}.sql.${ARCH_EXT}
+/usr/local/bin/mysqldump -u${SECOND_MYSQL_USER} -h ${SECOND_MYSQL_HOST} -p${SECOND_MYSQL_PASS} ${SECOND_MYSQL_DB} | ${ARCH_APP} -c > "./${SECOND_DUMP_NAME}.sql.${ARCH_EXT}" 
+
+##############
+svn status | awk '$1=="!" {print  $2}' | xargs svn delete
+svn status | awk '$1=="?" {print $2}' | xargs svn add
+sleep 3
 svn commit -m "${MESSAGE}"

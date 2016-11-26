@@ -1,0 +1,9 @@
+#!/bin/sh
+# $Id:
+CONFIG_LIST=`cat _project_dir_wcp/project.conf`
+#CONFIG_LIST=`cat _project_dir_wcp/project.conf | sed '/^$/d'`
+echo ${CONFIG_LIST}
+
+
+#cat _project_dir_wcp/project.conf | awk -F \= '{if($1 == "FTP_USER") print $2}' | sed s/\"//g
+
