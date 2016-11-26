@@ -12,6 +12,7 @@ IGNORE_FILE_CONTENT=`echo "${IGNORE_FILE_CONTENT}" | sed 's/\*/AsTeRiSk/g'`
 
 echo "==============================================="
 
+
 INDEX0=0
 for CURRENT_STRING in ${IGNORE_FILE_CONTENT}; do
 	CURRENT_STRING=`echo "${CURRENT_STRING}" | sed 's/AsTeRiSk/\*/g'`
@@ -91,7 +92,7 @@ for STRING_CONTENT in ${UNIC_DIRS}; do
 
 		if [ "${RESULT_DIR}" = ${STRING_CONTENT} ]; then
 			echo "Совпала директория: ${RESULT_DIR}"
-			echo "${RESULT_DIR}${FILE}" >> /tmp/.svnignore 
+			echo "${FILE}" >> /tmp/.svnignore 
 			DIR_FOR_SET="${RESULT_DIR}"
 			
 		fi		
